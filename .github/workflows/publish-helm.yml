@@ -35,8 +35,8 @@ jobs:
         # This step reads the Chart.yaml to get dynamic chart name and version
         id: get_chart_info
         run: |
-          CHART_NAME=$(yq e '.name' charts/my-chart/Chart.yaml)
-          CHART_VERSION=$(yq e '.version' charts/my-chart/Chart.yaml)
+          CHART_NAME=$(yq e '.name' helm/openproject/Chart.yaml)
+          CHART_VERSION=$(yq e '.version' helm/openproject/Chart.yaml)
           echo "Chart Name: $CHART_NAME"
           echo "Chart Version: $CHART_VERSION"
           echo "chart_name=$CHART_NAME" >> $GITHUB_OUTPUT
@@ -48,9 +48,8 @@ jobs:
 
       - name: Package Helm Chart
         # Packages the chart into a .tgz file.
-        # Assuming your chart is located in a directory like 'charts/my-chart'.
         # Adjust the path to your chart directory accordingly.
-        run: helm package charts/my-chart
+        run: helm package helm/openproject
 
       - name: Push Helm Chart to GHCR
         # The OCI URL format is oci://ghcr.io/<OWNER>/<REPOSITORY_NAME>/<CHART_NAME>
