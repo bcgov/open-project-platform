@@ -70,9 +70,19 @@ jobs:
           helm push "$CHART_PACKAGE_NAME" "$CHART_OCI_PATH"
 
       - name: Verify Helm Chart in GHCR (Optional)
-        # You can add a step to pull and inspect the chart to ensure it was pushed correctly.
+        # Helm pull might require re-login if the previous login was too old or for a different session.
+        # It's good practice to re-authenticate if you're hitting cache issues.
+        # Re-logging in here will also refresh the OCI registry.json cache.
         run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io \
+            --username ${{ github.actor }} \
+            --password-stdin
+
           CHART_NAME="${{ steps.get_chart_info.outputs.chart_name }}"
           CHART_VERSION="${{ steps.get_chart_info.outputs.chart_version }}"
+          
+          echo "Attempting to pull oci://ghcr.io/${{ github.repository_owner }}/$CHART_NAME with version $CHART_VERSION"
           helm pull "oci://ghcr.io/${{ github.repository_owner }}/$CHART_NAME" --version "$CHART_VERSION" --untar
+          
+          echo "Listing contents of the pulled chart directory:"
           ls -R "$CHART_NAME" # List content of the pulled chart
