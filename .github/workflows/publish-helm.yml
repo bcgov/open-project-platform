@@ -6,7 +6,7 @@ on:
       - main # Or your default branch like 'master' or 'develop'
     paths:
       - 'helm/**' # Trigger only if changes are in chart directory
-      - '.github/workflows/publish-helm.yaml' # Also trigger if the workflow itself changes
+      - '.github/workflows/publish-helm.yml' # Also trigger if the workflow itself changes
 
 jobs:
   publish:
@@ -24,6 +24,13 @@ jobs:
         uses: azure/setup-helm@v1
         with:
           version: 'latest' # Or a specific version like 'v3.15.0'
+
+      - name: Create Helm Home Directory
+        # Ensure the .helm directory and its subdirectories exist
+        run: |
+          mkdir -p ~/.helm/repository
+          touch ~/.helm/repository/repositories.yaml
+          touch ~/.helm/registry.json
 
       - name: Login to GitHub Container Registry
         # This uses the GITHUB_TOKEN provided by GitHub Actions for authentication.
