@@ -1,0 +1,72 @@
+name: Publish Helm Chart to GHCR
+
+on:
+  push:
+    branches:
+      - main # Or your default branch like 'master' or 'develop'
+    paths:
+      - 'helm/**' # Trigger only if changes are in chart directory
+      - '.github/workflows/publish-helm.yaml' # Also trigger if the workflow itself changes
+
+jobs:
+  publish:
+    name: Publish Helm Chart
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read   # Required to checkout the repository code
+      packages: write  # Required to push packages to GHCR
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v1
+        with:
+          version: 'latest' # Or a specific version like 'v3.15.0'
+
+      - name: Login to GitHub Container Registry
+        # This uses the GITHUB_TOKEN provided by GitHub Actions for authentication.
+        # ${{ github.actor }} is the user or bot that triggered the workflow (e.g., 'octocat' or 'github-actions[bot]').
+        # The password is stdin to prevent it from being exposed in logs.
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io --username ${{ github.actor }} --password-stdin
+
+      - name: Get Chart Version and Name
+        # This step reads the Chart.yaml to get dynamic chart name and version
+        id: get_chart_info
+        run: |
+          CHART_NAME=$(yq e '.name' charts/my-chart/Chart.yaml)
+          CHART_VERSION=$(yq e '.version' charts/my-chart/Chart.yaml)
+          echo "Chart Name: $CHART_NAME"
+          echo "Chart Version: $CHART_VERSION"
+          echo "chart_name=$CHART_NAME" >> $GITHUB_OUTPUT
+          echo "chart_version=$CHART_VERSION" >> $GITHUB_OUTPUT
+        # Install yq for parsing YAML, if not already available
+        # You might need to add a step like:
+        # - name: Install yq
+        #   run: sudo snap install yq || sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq && sudo chmod +x /usr/bin/yq
+
+      - name: Package Helm Chart
+        # Packages the chart into a .tgz file.
+        # Assuming your chart is located in a directory like 'charts/my-chart'.
+        # Adjust the path to your chart directory accordingly.
+        run: helm package charts/my-chart
+
+      - name: Push Helm Chart to GHCR
+        # The OCI URL format is oci://ghcr.io/<OWNER>/<REPOSITORY_NAME>/<CHART_NAME>
+        # ${{ github.repository_owner }} will resolve to your username or organization name.
+        # ${{ steps.get_chart_info.outputs.chart_name }} gets the chart name from the previous step.
+        # The packaged chart file name follows the pattern <CHART_NAME>-<CHART_VERSION>.tgz
+        run: |
+          CHART_PACKAGE_NAME="${{ steps.get_chart_info.outputs.chart_name }}-${{ steps.get_chart_info.outputs.chart_version }}.tgz"
+          CHART_OCI_PATH="oci://ghcr.io/${{ github.repository_owner }}/${{ steps.get_chart_info.outputs.chart_name }}"
+          echo "Pushing $CHART_PACKAGE_NAME to $CHART_OCI_PATH"
+          helm push "$CHART_PACKAGE_NAME" "$CHART_OCI_PATH"
+
+      - name: Verify Helm Chart in GHCR (Optional)
+        # You can add a step to pull and inspect the chart to ensure it was pushed correctly.
+        run: |
+          CHART_NAME="${{ steps.get_chart_info.outputs.chart_name }}"
+          CHART_VERSION="${{ steps.get_chart_info.outputs.chart_version }}"
+          helm pull "oci://ghcr.io/${{ github.repository_owner }}/$CHART_NAME" --version "$CHART_VERSION" --untar
+          ls -R "$CHART_NAME" # List content of the pulled chart
