@@ -104,9 +104,9 @@ dbInit:
 appInit:
   resources:
     limits:
-      memory: "512Mi"
+      memory: "200Mi"
     requests:
-      memory: "512Mi"
+      memory: "200Mi"
 
 ## Define and create Kubernetes Service.
 ##
@@ -133,7 +133,7 @@ ingress:
 
   ## Define the Fully Qualified Domain Name (FQDN) where OpenProject should be reachable.
   #
-  host: "openproject.example.com"
+  host: "openproject.apps.silver.devops.gov.bc.ca"
 
   ## Define the path for OpenProject on your host.
   #
@@ -222,25 +222,28 @@ memcached:
   ## When set to true, a memcached will be deployed into current namespace, when false you have to provide your own
   ## memcached instance.
   #
-  bundled: true
+  bundled: false
 
-  global:
-    containerSecurityContext:
-      enabled: true
-      allowPrivilegeEscalation: false
-      capabilities:
-        drop:
-          - "ALL"
-      seccompProfile:
-        type: "RuntimeDefault"
-      readOnlyRootFilesystem: true
-      runAsNonRoot: true
+  # global:
+  #   containerSecurityContext:
+  #     enabled: true
+  #     runAsUser: 1014120000
+  #     runAsGroup: 1014120000
+  #     fsGroup: 1014120000
+  #     allowPrivilegeEscalation: false
+  #     capabilities:
+  #       drop:
+  #         - "ALL"
+  #     seccompProfile:
+  #       type: "RuntimeDefault"
+  #     readOnlyRootFilesystem: true
+  #     runAsNonRoot: true
 
   ## When "bundled" is set to false, you need to define the memcached connection details.
   #
   connection:
-    host:
-    port:
+    host: memcached
+    port: 11211
 
 ## String to partially override release name.
 #
@@ -299,11 +302,11 @@ workers:
       type: "Recreate"
     resources:
       requests:
-        memory: "512Mi"
-        cpu: "250m"
+        memory: "100Mi"
+        cpu: "80m"
       limits:
-        memory: "4Gi"
-        cpu: "4"
+        memory: "100Mi"
+        cpu: "100m"
 
 ## OpenProject related settings.
 ##
@@ -348,7 +351,7 @@ openproject:
     password: "admin"
     password_reset: "true"
     name: "OpenProject Admin"
-    mail: "admin@example.net"
+    mail: "spencer.rose@gov.bc.ca"
 
     secret: ""
 
@@ -402,15 +405,15 @@ openproject:
   ## Whether or not to use ephemeral volumes for /app/tmp and /tmp.
   ## Falls back to a sensible default if undefined.
   #
-  useTmpVolumes:
+  useTmpVolumes: true
 
   ## Define the tmp storage sizes
   #
-  tmpVolumesStorage: "5Gi"
+  tmpVolumesStorage: "1Gi"
 
   ## Define the class of the tmp storage
   #
-  tmpVolumesStorageClassName:
+  tmpVolumesStorageClassName: "netapp-file-standard"
 
   ## Define custom annotations of tmp storage
   #
@@ -519,7 +522,7 @@ podAnnotations: {}
 #
 podSecurityContext:
   enabled: true
-  fsGroup: 1000
+  fsGroup: 1014120000
 
 ## Container security context using as a default best practice values
 ## granting minimum privileges.
@@ -527,16 +530,16 @@ podSecurityContext:
 ## Ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
 #
 containerSecurityContext:
-  enabled: true
-  runAsUser: 1000
-  runAsGroup: 1000
+  enabled: false
+  runAsUser: 1014120000
+  runAsGroup: 1014120000
   allowPrivilegeEscalation: false
   capabilities:
     drop:
       - "ALL"
   seccompProfile:
     type: "RuntimeDefault"
-  readOnlyRootFilesystem: true
+  readOnlyRootFilesystem: false
   runAsNonRoot: true
 
 ## Configure PostgreSQL settings.
@@ -547,23 +550,25 @@ postgresql:
   #
   bundled: false
 
-  global:
-    containerSecurityContext:
-      enabled: true
-      allowPrivilegeEscalation: false
-      capabilities:
-        drop:
-          - "ALL"
-      seccompProfile:
-        type: "RuntimeDefault"
-      readOnlyRootFilesystem: true
-      runAsNonRoot: true
+  # global:
+  #   containerSecurityContext:
+  #     enabled: false
+  #     runAsUser: 1014120000
+  #     runAsGroup: 1014120000
+  #     allowPrivilegeEscalation: false
+  #     capabilities:
+  #       drop:
+  #         - "ALL"
+  #     seccompProfile:
+  #       type: "RuntimeDefault"
+  #     readOnlyRootFilesystem: true
+  #     runAsNonRoot: true
 
   ## When "bundled" is set to false, you need to define the database connection details.
   #
   connection:
-    host:
-    port:
+    host: open-project-db-postgresql
+    port: 5432
 
   ## Database auth details.
   #
@@ -582,13 +587,13 @@ postgresql:
     ## kubectl get secret -n <namespace> openproject-postgresql -o yaml | grep password
     ## ```
     #
-    existingSecret: ""
+    existingSecret: "openproject-postgresql"
 
     ## In case your secret does not use the default keys in the secret, you can adjust them here.
     ##
-    ## secretKeys:
-    ##   adminPasswordKey: "postgres-password"
-    ##   userPasswordKey: "password"
+    secretKeys:
+      adminPasswordKey: "postgres-password"
+      userPasswordKey: "password"
 
     ## Database username.
     #
@@ -603,11 +608,11 @@ postgresql:
 
     ## Database password.
     #
-    password: ""
+    # password: ""
 
     ## Database root password.
     #
-    postgresPassword: ""
+    # postgresPassword: ""
 
   ##
   # Additional connection options
@@ -761,11 +766,11 @@ backgroundReplicaCount: 1
 #
 resources:
   requests:
-    memory: "512Mi"
-    cpu: "250m"
+    memory: "256Mi"
+    cpu: "80m"
   limits:
-    memory: "4Gi"
-    cpu: "4"
+    memory: "256Mi"
+    cpu: "100m"
 
 ## Define and create Kubernetes Service.
 ##
