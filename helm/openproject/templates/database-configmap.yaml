@@ -59,7 +59,7 @@ data:
       port: <%= ENV["OPENPROJECT_DB_PORT"] || ENV["DATABASE_PORT"] || 5432 %>
       database: <%= ENV["OPENPROJECT_DB_NAME"] || ENV["DATABASE_NAME"] %>
       username: <%= ENV["OPENPROJECT_DB_USER"] || ENV["DATABASE_USER"] %>
-      password: <%= ENV["OPENPROJECT_DB_PASS"] || ENV["DATABASE_PASSWORD"] %>
+      password: <%= ENV["OPENPROJECT_DB_PASSWORD"] || ENV["DATABASE_PASSWORD"] %>
       schema_search_path: public
       connect_timeout: 5
       variables:
