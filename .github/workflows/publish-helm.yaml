@@ -60,9 +60,6 @@ jobs:
           echo "Chart Version: $CHART_VERSION"
           echo "chart_name=$CHART_NAME" >> "$GITHUB_OUTPUT"
           echo "chart_version=$CHART_VERSION" >> "$GITHUB_OUTPUT"
-        # Optional: Add step to install yq if not present on the runner
-        # - name: Install yq
-        #   run: sudo snap install yq || sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq && sudo chmod +x /usr/local/bin/yq
 
       - name: Package Helm Chart
         run: helm package helm/openproject
@@ -74,27 +71,27 @@ jobs:
           echo "Pushing $CHART_PACKAGE_NAME to $CHART_OCI_PATH"
           helm push "$CHART_PACKAGE_NAME" "$CHART_OCI_PATH"
 
-      - name: Verify Helm Chart in GHCR (Optional)
-        # Use helm show all as a more reliable check than pull in CI
-        run: |
-          echo "Re-logging in to GHCR for verification..."
-          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io \
-            --username ${{ github.actor }} \
-            --password-stdin
+      # - name: Verify Helm Chart in GHCR (Optional)
+      #   # Use helm show all as a more reliable check than pull in CI
+      #   run: |
+      #     echo "Re-logging in to GHCR for verification..."
+      #     echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io \
+      #       --username ${{ github.actor }} \
+      #       --password-stdin
           
-          CHART_NAME="${{ steps.get_chart_info.outputs.chart_name }}"
-          ORG_NAME="${{ github.repository_owner }}"
-          CHART_VERSION="${{ steps.get_chart_info.outputs.chart_version }}"
+      #     CHART_NAME="${{ steps.get_chart_info.outputs.chart_name }}"
+      #     ORG_NAME="${{ github.repository_owner }}"
+      #     CHART_VERSION="${{ steps.get_chart_info.outputs.chart_version }}"
 
-          echo "Listing versions for oci://ghcr.io/$ORG_NAME/$CHART_NAME"
-          helm show all "oci://ghcr.io/$ORG_NAME/$CHART_NAME"
+      #     echo "Listing versions for oci://ghcr.io/$ORG_NAME/$CHART_NAME"
+      #     helm show all "oci://ghcr.io/$ORG_NAME/$CHART_NAME"
           
-          echo "Attempting to pull oci://ghcr.io/$ORG_NAME/$CHART_NAME with version $CHART_VERSION"
-          helm pull "oci://ghcr.io/$ORG_NAME/$CHART_NAME" --version "$CHART_VERSION" --untar || { 
-            echo "Warning: Helm pull failed, but push and helm show all might have succeeded. Please check GHCR manually."
-            # Don't fail the workflow just for this verification step if other checks are positive.
-            exit 0 
-          }
+      #     echo "Attempting to pull oci://ghcr.io/$ORG_NAME/$CHART_NAME with version $CHART_VERSION"
+      #     helm pull "oci://ghcr.io/$ORG_NAME/$CHART_NAME" --version "$CHART_VERSION" --untar || { 
+      #       echo "Warning: Helm pull failed, but push and helm show all might have succeeded. Please check GHCR manually."
+      #       # Don't fail the workflow just for this verification step if other checks are positive.
+      #       exit 0 
+      #     }
           
-          echo "Listing contents of the pulled chart directory:"
-          ls -R "$CHART_NAME"
+      #     echo "Listing contents of the pulled chart directory:"
+      #     ls -R "$CHART_NAME"
