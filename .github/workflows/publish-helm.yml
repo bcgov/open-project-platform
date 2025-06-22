@@ -5,8 +5,9 @@ on:
     branches:
       - main # Or your default branch like 'master' or 'develop'
     paths:
-      - 'helm/**' # Trigger only if changes are in chart directory
-      - '.github/workflows/publish-helm.yml' # Also trigger if the workflow itself changes
+      # Adjust these paths to your actual chart location and workflow file
+      - 'helm/openproject/**'
+      - '.github/workflows/publish-helm.yml'
 
 jobs:
   publish:
@@ -20,69 +21,80 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Helm
+      - name: Install Helm 3 (and verify version)
         uses: azure/setup-helm@v1
         with:
-          version: 'latest' # Or a specific version like 'v3.15.0'
+          # Explicitly request a Helm 3 version that supports OCI push
+          version: 'v3.15.0'
+        id: setup_helm
 
-      - name: Create Helm Home Directory
-        # Ensure the .helm directory and its subdirectories exist
+      - name: Verify Helm Version is 3.x
         run: |
+          helm version --client
+          # Check if the client version string contains "v3."
+          helm version --client | grep "Version:\"v3\." || {
+            echo "Error: Helm 3 was not correctly installed. Found different version."
+            exit 1
+          }
+
+      - name: Clean Helm Cache and Ensure Home Directory
+        run: |
+          echo "Cleaning Helm cache directory: ~/.helm"
+          rm -rf ~/.helm || true # Remove the entire directory, ignore if it doesn't exist
           mkdir -p ~/.helm/repository
           touch ~/.helm/repository/repositories.yaml
-          touch ~/.helm/registry.json
-          helm init
+          touch ~/.helm/registry.json # This will be populated by helm registry login
 
       - name: Login to GitHub Container Registry
-        # This uses the GITHUB_TOKEN provided by GitHub Actions for authentication.
-        # ${{ github.actor }} is the user or bot that triggered the workflow (e.g., 'octocat' or 'github-actions[bot]').
-        # The password is stdin to prevent it from being exposed in logs.
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io --username ${{ github.actor }} --password-stdin
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io \
+            --username ${{ github.actor }} \
+            --password-stdin
 
       - name: Get Chart Version and Name
-        # This step reads the Chart.yaml to get dynamic chart name and version
         id: get_chart_info
         run: |
-          CHART_NAME=$(yq e '.name' helm/openproject/Chart.yaml)
-          CHART_VERSION=$(yq e '.version' helm/openproject/Chart.yaml)
+          CHART_NAME=$(yq e '.name' charts/openproject/Chart.yaml)
+          CHART_VERSION=$(yq e '.version' charts/openproject/Chart.yaml)
           echo "Chart Name: $CHART_NAME"
           echo "Chart Version: $CHART_VERSION"
-          echo "chart_name=$CHART_NAME" >> $GITHUB_OUTPUT
-          echo "chart_version=$CHART_VERSION" >> $GITHUB_OUTPUT
-        # Install yq for parsing YAML, if not already available
-        # You might need to add a step like:
+          echo "chart_name=$CHART_NAME" >> "$GITHUB_OUTPUT"
+          echo "chart_version=$CHART_VERSION" >> "$GITHUB_OUTPUT"
+        # Optional: Add step to install yq if not present on the runner
         # - name: Install yq
-        #   run: sudo snap install yq || sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq && sudo chmod +x /usr/bin/yq
+        #   run: sudo snap install yq || sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq && sudo chmod +x /usr/local/bin/yq
 
       - name: Package Helm Chart
-        # Packages the chart into a .tgz file.
-        # Adjust the path to your chart directory accordingly.
-        run: helm package helm/openproject
+        run: helm package charts/openproject
 
       - name: Push Helm Chart to GHCR
-        # The OCI URL format is oci://ghcr.io/<OWNER>/<REPOSITORY_NAME>/<CHART_NAME>
-        # ${{ github.repository_owner }} will resolve to your username or organization name.
-        # ${{ steps.get_chart_info.outputs.chart_name }} gets the chart name from the previous step.
-        # The packaged chart file name follows the pattern <CHART_NAME>-<CHART_VERSION>.tgz
         run: |
           CHART_PACKAGE_NAME="${{ steps.get_chart_info.outputs.chart_name }}-${{ steps.get_chart_info.outputs.chart_version }}.tgz"
           CHART_OCI_PATH="oci://ghcr.io/${{ github.repository_owner }}/${{ steps.get_chart_info.outputs.chart_name }}"
+          echo "Pushing $CHART_PACKAGE_NAME to $CHART_OCI_PATH"
           helm push "$CHART_PACKAGE_NAME" "$CHART_OCI_PATH"
 
-      # - name: Verify Helm Chart in GHCR (Optional)
-      #   # Helm pull might require re-login if the previous login was too old or for a different session.
-      #   # It's good practice to re-authenticate if you're hitting cache issues.
-      #   # Re-logging in here will also refresh the OCI registry.json cache.
-      #   run: |
-      #     echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io \
-      #       --username ${{ github.actor }} \
-      #       --password-stdin
+      - name: Verify Helm Chart in GHCR (Optional)
+        # Use helm show all as a more reliable check than pull in CI
+        run: |
+          echo "Re-logging in to GHCR for verification..."
+          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io \
+            --username ${{ github.actor }} \
+            --password-stdin
+          
+          CHART_NAME="${{ steps.get_chart_info.outputs.chart_name }}"
+          ORG_NAME="${{ github.repository_owner }}"
+          CHART_VERSION="${{ steps.get_chart_info.outputs.chart_version }}"
 
-      #     CHART_NAME="${{ steps.get_chart_info.outputs.chart_name }}"
-      #     CHART_VERSION="${{ steps.get_chart_info.outputs.chart_version }}"
+          echo "Listing versions for oci://ghcr.io/$ORG_NAME/$CHART_NAME"
+          helm show all "oci://ghcr.io/$ORG_NAME/$CHART_NAME"
           
-      #     echo "Attempting to pull oci://ghcr.io/${{ github.repository_owner }}/$CHART_NAME with version $CHART_VERSION"
-      #     helm pull "oci://ghcr.io/${{ github.repository_owner }}/$CHART_NAME" --version "$CHART_VERSION" --untar
+          echo "Attempting to pull oci://ghcr.io/$ORG_NAME/$CHART_NAME with version $CHART_VERSION"
+          helm pull "oci://ghcr.io/$ORG_NAME/$CHART_NAME" --version "$CHART_VERSION" --untar || { 
+            echo "Warning: Helm pull failed, but push and helm show all might have succeeded. Please check GHCR manually."
+            # Don't fail the workflow just for this verification step if other checks are positive.
+            exit 0 
+          }
           
-      #     echo "Listing contents of the pulled chart directory:"
-      #     ls -R "$CHART_NAME"
+          echo "Listing contents of the pulled chart directory:"
+          ls -R "$CHART_NAME"
