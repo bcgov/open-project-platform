@@ -54,31 +54,13 @@ spec:
             claimName: {{ include "common.names.fullname" . }}
         {{- end }}
         {{- include "openproject.extraVolumes" . | indent 8 }}
-      # initContainers:
-      #   - name: wait-for-db
-      #     {{- include "openproject.containerSecurityContext" . | indent 10 }}
-      #     image: {{ include "openproject.image" . }}
-      #     imagePullPolicy: {{ .Values.image.imagePullPolicy }}
-      #     envFrom:
-      #       {{- include "openproject.envFrom" . | nindent 12 }}
-      #       - secretRef:
-      #           name: {{ include "common.names.fullname" . }}-cron-environment
-      #     env:
-      #       {{- include "openproject.env" . | nindent 12 }}
-      #     args:
-      #       - bash
-      #       - /app/docker/prod/wait-for-db
-          # resources:
-          #   {{- toYaml .Values.appInit.resources | nindent 12 }}
-          # volumeMounts:
-          #   {{- include "openproject.tmpVolumeMounts" . | indent 12 }}
       containers:
         - name: "cron"
           {{- include "openproject.containerSecurityContext" . | indent 10 }}
           image: {{ include "openproject.image" . }}
           imagePullPolicy: {{ .Values.image.imagePullPolicy }}
           envFrom:
-            {{- include "openproject.envFrom" . | nindent 12 }}
+            # {{- include "openproject.envFrom" . | nindent 12 }}
             - secretRef:
                 name: {{ include "common.names.fullname" . }}-cron-environment
           args:
