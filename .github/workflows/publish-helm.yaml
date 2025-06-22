@@ -7,7 +7,7 @@ on:
     paths:
       # Adjust these paths to your actual chart location and workflow file
       - 'helm/openproject/**'
-      - '.github/workflows/publish-helm.yml'
+      - '.github/workflows/publish-helm.yaml'
 
 jobs:
   publish:
@@ -42,7 +42,7 @@ jobs:
           echo "Cleaning Helm cache directory: ~/.helm"
           rm -rf ~/.helm || true # Remove the entire directory, ignore if it doesn't exist
           mkdir -p ~/.helm/repository
-          touch ~/.helm/repository/repositories.yml
+          touch ~/.helm/repository/repositories.yaml
           touch ~/.helm/registry.json # This will be populated by helm registry login
 
       - name: Login to GitHub Container Registry
@@ -54,8 +54,8 @@ jobs:
       - name: Get Chart Version and Name
         id: get_chart_info
         run: |
-          CHART_NAME=$(yq e '.name' helm/openproject/Chart.yml)
-          CHART_VERSION=$(yq e '.version' helm/openproject/Chart.yml)
+          CHART_NAME=$(yq e '.name' helm/openproject/Chart.yaml)
+          CHART_VERSION=$(yq e '.version' helm/openproject/Chart.yaml)
           echo "Chart Name: $CHART_NAME"
           echo "Chart Version: $CHART_VERSION"
           echo "chart_name=$CHART_NAME" >> "$GITHUB_OUTPUT"
