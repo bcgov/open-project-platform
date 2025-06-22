@@ -31,6 +31,7 @@ jobs:
           mkdir -p ~/.helm/repository
           touch ~/.helm/repository/repositories.yaml
           touch ~/.helm/registry.json
+          helm init
 
       - name: Login to GitHub Container Registry
         # This uses the GITHUB_TOKEN provided by GitHub Actions for authentication.
@@ -66,7 +67,6 @@ jobs:
         run: |
           CHART_PACKAGE_NAME="${{ steps.get_chart_info.outputs.chart_name }}-${{ steps.get_chart_info.outputs.chart_version }}.tgz"
           CHART_OCI_PATH="oci://ghcr.io/${{ github.repository_owner }}/${{ steps.get_chart_info.outputs.chart_name }}"
-          helm init
           helm push "$CHART_PACKAGE_NAME" "$CHART_OCI_PATH"
 
       # - name: Verify Helm Chart in GHCR (Optional)
