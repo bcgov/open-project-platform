@@ -53,6 +53,9 @@ spec:
             claimName: {{ if .Values.persistence.existingClaim }}{{ .Values.persistence.existingClaim }}{{- else }}{{ include "common.names.fullname" . }}{{- end }}
         {{- end }}
         {{- include "openproject.extraVolumes" . | indent 8 }}
+        - name: database-config-volume
+          configMap:
+            name: {{ include "common.names.fullname" . }}-database-config
       containers:
         - name: "openproject"
           {{- include "openproject.containerSecurityContext" . | indent 10 }}
@@ -65,6 +68,10 @@ spec:
           args:
             - /app/docker/prod/web
           volumeMounts:
+            - name: database-config-volume
+              mountPath: /app/config/database.yml 
+              subPath: database.yml
+              readOnly: true    
             {{- include "openproject.tmpVolumeMounts" . | indent 12 }}
             {{- if .Values.persistence.enabled }}
             - name: "data"

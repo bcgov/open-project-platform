@@ -327,6 +327,7 @@ openproject:
   cache:
     store: "memcache"
 
+  env: []
   envFrom: []
   extraEnvVarsSecret: ""
 
@@ -586,9 +587,9 @@ postgresql:
 
     ## In case your secret does not use the default keys in the secret, you can adjust them here.
     ##
-    ## secretKeys:
-    ##   adminPasswordKey: "postgres-password"
-    ##   userPasswordKey: "password"
+    secretKeys:
+      adminPasswordKey: "postgres-password"
+      userPasswordKey: "password"
 
     ## Database username.
     #
