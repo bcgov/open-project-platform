@@ -66,7 +66,7 @@ jobs:
         run: |
           CHART_PACKAGE_NAME="${{ steps.get_chart_info.outputs.chart_name }}-${{ steps.get_chart_info.outputs.chart_version }}.tgz"
           CHART_OCI_PATH="oci://ghcr.io/${{ github.repository_owner }}/${{ steps.get_chart_info.outputs.chart_name }}"
-          echo "Pushing $CHART_PACKAGE_NAME to $CHART_OCI_PATH"
+          helm init
           helm push "$CHART_PACKAGE_NAME" "$CHART_OCI_PATH"
 
       # - name: Verify Helm Chart in GHCR (Optional)
