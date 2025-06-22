@@ -330,6 +330,7 @@ openproject:
   cache:
     store: "memcache"
 
+  envFrom: []
   extraEnvVarsSecret: ""
 
   ## Define the language to seed the instance in
