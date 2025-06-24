@@ -90,6 +90,8 @@ spec:
             {{- include "openproject.envFrom" . | nindent 12 }}
           env:
             {{- include "openproject.env" . | nindent 12 }}
+            - name: TMPDIR
+              value: /tmp/app
           args:
             - /app/docker/prod/web
           volumeMounts:

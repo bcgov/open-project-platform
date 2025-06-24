@@ -92,6 +92,8 @@ spec:
             - /app/docker/prod/worker
           env:
             {{- include "openproject.env" . | nindent 12 }}
+            - name: TMPDIR
+              value: /tmp/app
             - name: "OPENPROJECT_GOOD_JOB_QUEUES"
               value: "{{ $workerValues.queues }}"
             {{- if not (empty $workerValues.maxThreads) }}
