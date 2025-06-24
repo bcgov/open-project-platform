@@ -69,6 +69,8 @@ spec:
             {{- include "openproject.envFrom" . | nindent 12 }}
           env:
             {{- include "openproject.env" . | nindent 12 }}
+            - name: TMPDIR
+              value: /tmp
           resources:
             {{- toYaml .Values.seederJob.resources | nindent 12 }}
           volumeMounts:
