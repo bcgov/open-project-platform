@@ -54,7 +54,7 @@ spec:
             - '-c'
             - |
               # Add the chmod command here, before checking DB readiness
-              echo ls -l -a
+              ls -l -a
 
               echo "Setting sticky bit on /tmp for Ruby's security requirements..."
               chmod 1777 /tmp || { echo "Failed to set sticky bit on /tmp!"; exit 1; }
