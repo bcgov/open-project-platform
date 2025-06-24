@@ -44,11 +44,25 @@ spec:
         - name: check-db-ready
           image: "{{ .Values.dbInit.image.registry }}/{{ .Values.dbInit.image.repository }}:{{ .Values.dbInit.image.tag }}"
           imagePullPolicy: {{ .Values.dbInit.image.imagePullPolicy }}
-          command: [
-            'sh',
-            '-c',
-            'until pg_isready -h $DATABASE_HOST -p $DATABASE_PORT -U {{ .Values.postgresql.auth.username }}; do echo "waiting for database $DATABASE_HOST:$DATABASE_PORT"; sleep 2; done;'
-          ]
+          # command: [
+          #   'sh',
+          #   '-c',
+          #   'until pg_isready -h $DATABASE_HOST -p $DATABASE_PORT -U {{ .Values.postgresql.auth.username }}; do echo "waiting for database $DATABASE_HOST:$DATABASE_PORT"; sleep 2; done;'
+          # ]
+          command:
+            - 'sh'
+            - '-c'
+            - |
+              # Add the chmod command here, before checking DB readiness
+              echo "Setting sticky bit on /tmp for Ruby's security requirements..."
+              chmod 1777 /tmp || { echo "Failed to set sticky bit on /tmp!"; exit 1; }
+
+              echo "Waiting for database to be ready..."
+              until pg_isready -h $DATABASE_HOST -p $DATABASE_PORT -U {{ .Values.postgresql.auth.username }}; do
+                echo "waiting for database $DATABASE_HOST:$DATABASE_PORT";
+                sleep 2;
+              done;
+              echo "Database is ready."
           envFrom:
             {{- include "openproject.envFrom" . | nindent 12 }}
           env:
