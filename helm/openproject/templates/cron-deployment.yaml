@@ -78,7 +78,7 @@ spec:
           image: {{ include "openproject.image" . }}
           imagePullPolicy: {{ .Values.image.imagePullPolicy }}
           envFrom:
-            # {{- include "openproject.envFrom" . | nindent 12 }}
+            {{- include "openproject.envFrom" . | nindent 12 }}
             - secretRef:
                 name: {{ include "common.names.fullname" . }}-cron-environment
           args:
