@@ -56,6 +56,21 @@ spec:
         - name: database-config-volume
           configMap:
             name: {{ include "common.names.fullname" . }}-database-config
+      initContainers:
+        - name: wait-for-db
+          {{- include "openproject.containerSecurityContext" . | indent 10 }}
+          image: {{ include "openproject.image" . }}
+          imagePullPolicy: {{ .Values.image.imagePullPolicy }}
+          envFrom:
+            {{- include "openproject.envFrom" . | nindent 12 }}
+          env:
+            {{- include "openproject.env" . | nindent 12 }}
+          args:
+            - /app/docker/prod/wait-for-db
+          resources:
+            {{- toYaml .Values.appInit.resources | nindent 12 }}
+          volumeMounts:
+            {{- include "openproject.tmpVolumeMounts" . | indent 12 }}
       containers:
         - name: "openproject"
           {{- include "openproject.containerSecurityContext" . | indent 10 }}
