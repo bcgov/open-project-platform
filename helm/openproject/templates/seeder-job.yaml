@@ -53,14 +53,16 @@ spec:
             - 'sh'
             - '-c'
             - |
-              # Add the chmod command here, before checking DB readiness
-              ls -l -a
+              # Create a subdirectory that the non-root user will own
+              echo "Creating user-owned temporary directory /tmp/app..."
+              mkdir -p /tmp/app || { echo "Failed to create /tmp/app!"; exit 1; }
 
-              echo "Setting sticky bit on /tmp for Ruby's security requirements..."
-              chmod 1777 /tmp || { echo "Failed to set sticky bit on /tmp!"; exit 1; }
+              # Set permissions to 700 (owner rwx, others no access)
+              echo "Setting permissions on /tmp/app to 700..."
+              chmod 700 /tmp/app || { echo "Failed to set permissions on /tmp/app!"; exit 1; }
 
               echo "Waiting for database to be ready..."
-              until pg_isready -h $DATABASE_HOST -p $DATABASE_PORT -U {{ .Values.postgresql.auth.username }}; do
+              until pg_isready -h $DATABASE_HOST -p $DATABASE_PORT -U openproject; do
                 echo "waiting for database $DATABASE_HOST:$DATABASE_PORT";
                 sleep 2;
               done;
@@ -86,7 +88,7 @@ spec:
           env:
             {{- include "openproject.env" . | nindent 12 }}
             - name: TMPDIR
-              value: /tmp
+              value: /tmp/app
           resources:
             {{- toYaml .Values.seederJob.resources | nindent 12 }}
           volumeMounts:
