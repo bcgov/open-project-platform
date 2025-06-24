@@ -104,9 +104,9 @@ dbInit:
 appInit:
   resources:
     limits:
-      memory: "200Mi"
+      memory: "650Mi"
     requests:
-      memory: "200Mi"
+      memory: "650Mi"
 
 ## Define and create Kubernetes Service.
 ##
