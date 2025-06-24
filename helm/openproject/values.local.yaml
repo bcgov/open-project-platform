@@ -530,7 +530,7 @@ podSecurityContext:
 ## Ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
 #
 containerSecurityContext:
-  enabled: false
+  enabled: true
   runAsUser: 1014120000
   runAsGroup: 1014120000
   allowPrivilegeEscalation: false
