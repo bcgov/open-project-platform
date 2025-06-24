@@ -405,7 +405,7 @@ openproject:
   ## Whether or not to use ephemeral volumes for /app/tmp and /tmp.
   ## Falls back to a sensible default if undefined.
   #
-  useTmpVolumes: true
+  useTmpVolumes: false
 
   ## Define the tmp storage sizes
   #
@@ -511,7 +511,7 @@ s3:
 #
 podAnnotations: {}
 
-## Pod Security Context.
+## Pod Security Context
 ##
 ## We use the default value of `1000` for `fsGroup` since that
 ## is the app user's group ID and if the user wants to be able to
@@ -522,6 +522,8 @@ podAnnotations: {}
 #
 podSecurityContext:
   enabled: true
+  runAsUser: 1014120000
+  runAsGroup: 1014120000
   fsGroup: 1014120000
 
 ## Container security context using as a default best practice values
@@ -534,9 +536,9 @@ containerSecurityContext:
   runAsUser: 1014120000
   runAsGroup: 1014120000
   allowPrivilegeEscalation: false
-  capabilities:
-    drop:
-      - "ALL"
+  # capabilities:
+  #   drop:
+  #     - "ALL"
   seccompProfile:
     type: "RuntimeDefault"
   readOnlyRootFilesystem: false

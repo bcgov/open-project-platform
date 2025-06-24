@@ -403,7 +403,7 @@ openproject:
   ## Whether or not to use ephemeral volumes for /app/tmp and /tmp.
   ## Falls back to a sensible default if undefined.
   #
-  useTmpVolumes:
+  useTmpVolumes: true
 
   ## Define the tmp storage sizes
   #
