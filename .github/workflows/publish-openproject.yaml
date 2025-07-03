@@ -1,4 +1,4 @@
-name: Publish Helm Chart to GHCR
+name: Publish Open Project Helm Chart to GHCR
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     paths:
       # Adjust these paths to your actual chart location and workflow file
       - 'helm/openproject/**'
-      - '.github/workflows/publish-helm.yaml'
+      - '.github/workflows/publish-openproject.yaml'
 
 jobs:
   publish:

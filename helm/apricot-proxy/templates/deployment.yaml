@@ -1,0 +1,138 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "apricot-proxy.fullname" . }}
+  labels:
+    {{- include "apricot-proxy.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "apricot-proxy.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        # 1. Vault injector configuration
+        vault.hashicorp.com/agent-inject: 'true'
+        # set to 'true' if you are going to connect and query vault from your application
+        vault.hashicorp.com/agent-inject-token: 'false' 
+        # this makes sure the secret vault will only change during pod restart
+        vault.hashicorp.com/agent-pre-populate-only: 'true' 
+        # Must match cluster. 
+        vault.hashicorp.com/auth-path: auth/k8s-{{ .Values.global.cluster }}  
+        vault.hashicorp.com/namespace: platform-services
+        # licenseplate-nonprod or licenseplate-prod are your options
+        vault.hashicorp.com/role: {{ .Values.global.vault.role }} 
+        # - The value is the path in Vault where the secret is located.
+        vault.hashicorp.com/agent-inject-secret-secrets: {{ .Values.global.licenseplate }}-{{ .Values.global.vault.engine }}/{{ .Values.apricot.vault.keycloakConfigSecret }}
+        # - The template Vault Agent should use for rendering a secret:
+        vault.hashicorp.com/agent-inject-template-secrets: |
+          {{`{{- with secret `}}"{{ .Values.global.licenseplate }}-{{ .Values.global.vault.engine }}/{{ .Values.apricot.vault.keycloakConfigSecret }}"{{` }}
+          {{- range $k, $v := .Data.data }}
+          {{ $k }}={{ $v }}{{ end -}}
+          {{- end `}} }}
+        # - The value is the path in Vault where the secret is located.
+        vault.hashicorp.com/agent-inject-secret-redis-password: {{ .Values.global.licenseplate }}-{{ .Values.global.vault.engine }}/{{ .Values.apricot.vault.redisSecret }}
+        # - The template Vault Agent should use for rendering a secret:
+        vault.hashicorp.com/agent-inject-template-redis-password: |
+          {{`{{- with secret `}}"{{ .Values.global.licenseplate }}-{{ .Values.global.vault.engine }}/{{ .Values.apricot.vault.redisSecret }}"{{` }}
+          {{ .Data.data.password }}
+          {{- end `}} }}
+      {{- with .Values.apricot.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "apricot-proxy.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "apricot-proxy.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          command: ["/bin/sh"]
+          args:
+            - -c
+            - |
+              echo "INFO: container starting entrypoint..."
+              if [ -s /vault/secrets/redis-password ]; then
+                SECRET_CONTENT=$(cat /vault/secrets/redis-password)
+                export REDIS_PASSWORD=$(echo "${SECRET_CONTENT}" | tr -d '\n\r ')
+                echo "INFO: Redis Password loaded from Vault secret. Length: ${#REDIS_PASSWORD}"
+              else
+                echo "ERROR: /vault/secrets/redis-password is empty or does not exist. Exiting."
+                exit 1
+              fi
+
+              if [ -z "${REDIS_PASSWORD}" ]; then
+                echo "ERROR: REDIS_PASSWORD variable is empty after loading from secret. Exiting."
+                exit 1
+              fi
+
+              exec ./entrypoint.sh
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: ldap
+              containerPort: {{ .Values.apricot.ldap.port }}
+              protocol: TCP
+          {{- if .Values.apricot.ldap.enableTls }}
+            - name: ldaps
+              containerPort: {{ .Values.apricot.ldap.tlsPort }}
+              protocol: TCP
+          {{- end }}
+          env:
+            # - name: CLIENT_ID
+            #   value: "{{`{{ env "APR_KEYCLOAK_CLIENT_ID" }}`}}"
+            # - name: CLIENT_SECRET
+            #   value: "{{`{{ env "APR_KEYCLOAK_CLIENT_SECRET" }}`}}"
+            - name: BACKEND
+              value: {{ .Values.apricot.keycloak.backendUrl | quote }}
+            - name: PORT
+              value: {{ .Values.apricot.ldap.port | quote }}
+            - name: DOMAIN
+              value: {{ .Values.apricot.keycloak.domain | quote }}
+            - name: LOG_LEVEL
+              value: {{ .Values.apricot.logLevel | quote }}
+          {{- if .Values.apricot.redis.enabled }}
+            - name: REDIS_HOST
+              value: {{ .Values.apricot.redis.host | quote }}
+            - name: REDIS_PORT
+              value: {{ .Values.apricot.redis.port | quote }}
+          {{- end }}
+          # {{- if .Values.apricot.ldap.enableTls }}
+          #   # ... TLS related environment variables remain the same (if using separate TLS secret mount)
+          # {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          {{- if .Values.apricot.ldap.enableTls }}
+          volumeMounts:
+            - name: apricot-tls-cert
+              mountPath: "/etc/apricot-tls"
+              readOnly: true
+          {{- end }}
+      {{- if .Values.apricot.ldap.enableTls }}
+      volumes:
+        - name: apricot-tls-cert
+          secret:
+            secretName: {{ .Values.apricot.ldap.tlsCertificateSecret }} # Refer to external TLS secret for Apricot LDAPS
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

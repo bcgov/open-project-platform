@@ -1,0 +1,78 @@
+replicaCount: 1
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 80
+
+image:
+  repository: ghcr.io/alan-turing-institute/apricot
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 1389
+  targetPort: 1389
+
+serviceAccount:
+  create: false
+  name: ""
+
+securityContext:
+  runAsNonRoot: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+# Global values for OpenShift/Vault context
+global:
+  cluster: "silver" 
+  licenseplate: "my-licenseplate" 
+  vault:
+    role: "licenseplate-nonprod" 
+    engine: "kv" 
+
+apricot:
+  # OIDC Backend Configuration (Keycloak)
+  keycloak:
+    # clientId is now extracted from Vault secret (keycloakConfigSecret)
+    backendUrl: "https://dev.loginproxy.gov.bc.ca/auth/realms/standard" # Your Keycloak realm URL
+    # LDAP domain
+    domain: "" 
+  
+  # LDAP Proxy Configuration
+  ldap:
+    enableTls: false
+    port: 1389
+    tlsPort: 1636
+
+  # Optional: Redis for ID caching (recommended for performance)
+  redis:
+    enabled: true
+    host: "redis-svc" # Or whatever your Redis service name is for caching
+    port: 6379
+
+  # Vault specific secret paths for Apricot
+  vault:
+    # Path to where the Keycloak client config JSON string is stored in Vault
+    # This secret should contain a key like 'config' whose value is the JSON string
+    keycloakConfigSecret: "keycloak-config"
+    # Path to where Redis password for Apricot's internal caching Redis is stored in Vault
+    redisSecret: "redis-credentials"
+  logLevel: "INFO"
+
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
