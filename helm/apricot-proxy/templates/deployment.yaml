@@ -74,7 +74,7 @@ spec:
           {{- end }}
           env:
             - name: BACKEND
-              value: {{ .Values.apricot.keycloak.backendUrl | quote }}
+              value: "Keycloak"
             - name: PORT
               value: {{ .Values.apricot.ldap.port | quote }}
             - name: DOMAIN

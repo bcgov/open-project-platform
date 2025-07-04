@@ -38,10 +38,8 @@ global:
 apricot:
   # OIDC Backend Configuration (Keycloak)
   keycloak:
-    # clientId is now extracted from Vault secret (keycloakConfigSecret)
-    backendUrl: "https://dev.loginproxy.gov.bc.ca/auth/realms/standard" # Your Keycloak realm URL
     # LDAP domain
-    domain: "" 
+    domain: ""
   
   # LDAP Proxy Configuration
   ldap:
