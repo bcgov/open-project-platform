@@ -3,4 +3,5 @@ name: apricot-proxy
 description: A Helm chart for deploying the Apricot LDAP proxy for OpenID Connect
 type: application
 version: 0.1.0
+icon: https://upload.wikimedia.org/wikipedia/commons/thumb/7/71/Database-openldap.svg/500px-Database-openldap.svg.png
 appVersion: "latest"

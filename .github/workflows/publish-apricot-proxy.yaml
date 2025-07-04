@@ -1,4 +1,4 @@
-name: Publish Helm Chart to GHCR
+name: Publish Apricot Proxy Helm Chart to GHCR
 
 on:
   push:

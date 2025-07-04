@@ -1,0 +1,124 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "apricot-proxy.fullname" . }}-entrypoint
+  labels:
+    {{- include "apricot-proxy.labels" . | nindent 4 }}
+data:
+  # The main entrypoint bash script with embedded Python
+  entrypoint.sh: |
+    #!/bin/bash
+    set -euo pipefail # Exit on error, exit on unset variables, pipefail
+
+    # Define paths for Vault-injected secret files
+    KEYCLOAK_CONFIG_FILE="/vault/secrets/keycloak-config"
+    REDIS_PASSWORD_FILE="/vault/secrets/apricot-redis-password"
+
+    # --- Pre-flight Checks ---
+    # Ensure Python interpreter is available
+    if ! command -v python3 &> /dev/null; then
+        echo "ERROR: 'python3' command not found. Please ensure Python 3 is installed in your container image."
+        exit 1
+    fi
+
+    # Ensure Apricot's main script (run.py) is present
+    # (Assuming run.py is in the container's working directory or on PATH)
+    if ! test -f "run.py"; then
+        echo "ERROR: 'run.py' script not found in current directory. Ensure it's in the container's working directory."
+        exit 1
+    fi
+
+    # --- Embedded Python for Secret Parsing ---
+    # This Python script reads the secret files and prints key=value pairs for bash.
+    # It is executed directly by the bash script.
+    read_secrets_py=$(cat <<EOF
+    #!/usr/bin/env python3
+    import json
+    import os
+    import sys
+
+    def read_file_content(file_path):
+        """Safely reads content from a file."""
+        try:
+            with open(file_path, 'r') as f:
+                return f.read().strip()
+        except FileNotFoundError:
+            # For non-fatal optional files like Redis password
+            return None 
+        except Exception as e:
+            print(f"Error reading file {file_path}: {e}", file=sys.stderr)
+            sys.exit(1)
+
+    def parse_keycloak_config(content):
+        """Parses the 'config=[{...}]' string and returns client_id, client_secret."""
+        if not content.startswith("config="):
+            raise ValueError(f"Keycloak config: Unexpected file content format. Expected 'config=' prefix.")
+        
+        json_string = content[len("config="):]
+        data = json.loads(json_string)
+        
+        if not isinstance(data, list) or not data:
+            raise ValueError("Keycloak config: Parsed JSON is not a non-empty list.")
+                
+        keycloak_data = data[0].get('keycloak')
+        if not keycloak_data or not isinstance(keycloak_data, dict):
+            raise ValueError("Keycloak config: 'keycloak' key not found or not a dictionary in the first element.")
+                
+        client_id = keycloak_data.get('client-id')
+        client_secret = keycloak_data.get('client-secret')
+        
+        if not client_id or not client_secret:
+            raise ValueError("Keycloak config: Missing 'client-id' or 'client-secret'.")
+                
+        return client_id, client_secret
+
+    if __name__ == "__main__":
+        keycloak_content = read_file_content(os.environ.get('KEYCLOAK_CONFIG_FILE'))
+        if not keycloak_content:
+            print(f"ERROR: Keycloak config file not found or empty at {os.environ.get('KEYCLOAK_CONFIG_FILE')}.", file=sys.stderr)
+            sys.exit(1)
+        
+        try:
+            client_id, client_secret = parse_keycloak_config(keycloak_content)
+            print(f"CLIENT_ID={client_id}")
+            print(f"CLIENT_SECRET={client_secret}")
+        except Exception as e:
+            print(f"ERROR parsing Keycloak config: {e}", file=sys.stderr)
+            sys.exit(1)
+
+        redis_password = read_file_content(os.environ.get('REDIS_PASSWORD_FILE'))
+        if redis_password:
+            print(f"REDIS_PASSWORD={redis_password}")
+        else:
+            print(f"Warning: Redis password file not found or empty at {os.environ.get('REDIS_PASSWORD_FILE')}. Proceeding without Redis password.", file=sys.stderr)
+
+        sys.exit(0)
+    EOF
+    )
+
+    # --- Execute Embedded Python and Capture Output ---
+    echo "Executing embedded Python script to extract secrets..."
+
+    # Pass file paths as environment variables to the Python script
+    export KEYCLOAK_CONFIG_FILE
+    export REDIS_PASSWORD_FILE
+
+    # Execute the Python script and capture its output (KEY=VALUE pairs).
+    # 'eval' then sets these variables in the current bash shell.
+    # This is safe because we fully control the Python script's output format.
+    eval "$(python3 -c "${read_secrets_py}")"
+
+    # Verify that essential variables were set by the Python script
+    if [ -z "${CLIENT_ID:-}" ] || [ -z "${CLIENT_SECRET:-}" ]; then
+        echo "ERROR: CLIENT_ID or CLIENT_SECRET were not extracted by Python script. Check Python script logs above for details."
+        exit 1
+    fi
+
+    echo "Keycloak CLIENT_ID extracted successfully."
+    # Note: CLIENT_SECRET and REDIS_PASSWORD are sensitive; avoid printing them to logs directly.
+    if [ -n "${REDIS_PASSWORD:-}" ]; then
+        echo "Redis password extracted successfully."
+    else
+        echo "Redis password not available (file not found or empty)."
+    fi
+    exec /app/entrypoint.sh
