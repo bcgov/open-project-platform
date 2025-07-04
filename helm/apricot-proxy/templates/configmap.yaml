@@ -121,4 +121,5 @@ data:
     else
         echo "Redis password not available (file not found or empty)."
     fi
-    exec /app/entrypoint.sh
+    # --- Start Apricot Proxy ---
+    bash /app/entrypoint.sh
