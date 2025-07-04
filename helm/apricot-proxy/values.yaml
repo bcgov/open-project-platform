@@ -36,8 +36,14 @@ global:
     engine: "kv" 
 
 apricot:
+  # Backend Configuration
+  backgroundRefresh: true 
+
   # OIDC Backend Configuration (Keycloak)
   keycloak:
+    realm: "my-realm"
+    domainAttribute: "domain"
+    # Base URL for Keycloak server
     baseUrl: "https://keycloak.example.com/auth"
     # LDAP domain
     domain: ""

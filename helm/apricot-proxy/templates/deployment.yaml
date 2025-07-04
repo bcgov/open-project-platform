@@ -75,12 +75,20 @@ spec:
           env:
             - name: BACKEND
               value: "Keycloak"
+            - name: KEYCLOAK_BASE_URL
+              value: {{ .Values.apricot.keycloak.baseUrl | quote }}
+            - name: KEYCLOAK_REALM
+              value: {{ .Values.apricot.keycloak.realm | quote }}
+            - name: KEYCLOAK_DOMAIN_ATTRIBUTE
+              value: {{ .Values.apricot.keycloak.domainAttribute | quote }}
             - name: PORT
               value: {{ .Values.apricot.ldap.port | quote }}
             - name: DOMAIN
               value: {{ .Values.apricot.keycloak.domain | quote }}
             - name: LOG_LEVEL
               value: {{ .Values.apricot.logLevel | quote }}
+            - name: BACKGROUND_REFRESH
+              value: {{ .Values.apricot.backgroundRefresh | quote }}
           {{- if .Values.apricot.redis.enabled }}
             - name: REDIS_HOST
               value: {{ .Values.apricot.redis.host | quote }}
