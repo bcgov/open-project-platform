@@ -7,7 +7,7 @@ metadata:
 data:
   # The main entrypoint bash script with embedded Python
   entrypoint.sh: |
-    #!/bin/bash
+    #!/bin/sh
     set -euo pipefail # Exit on error, exit on unset variables, pipefail
 
     # Define paths for Vault-injected secret files
