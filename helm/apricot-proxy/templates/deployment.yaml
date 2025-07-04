@@ -110,7 +110,7 @@ spec:
       {{- if .Values.apricot.ldap.enableTls }}
         - name: apricot-tls-cert
           secret:
-            secretName: {{ .Values.apricot.ldap.tlsCertificateSecret }} # Refer to external TLS secret for Apricot LDAPS
+            secretName: {{ .Values.apricot.ldap.tlsCertificateSecret }} 
       {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:

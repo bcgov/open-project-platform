@@ -38,6 +38,7 @@ global:
 apricot:
   # OIDC Backend Configuration (Keycloak)
   keycloak:
+    baseUrl: "https://keycloak.example.com/auth"
     # LDAP domain
     domain: ""
   
@@ -46,6 +47,7 @@ apricot:
     enableTls: false
     port: 1389
     tlsPort: 1636
+    tlsCertificateSecret: ""
 
   # Optional: Redis for ID caching (recommended for performance)
   redis:
