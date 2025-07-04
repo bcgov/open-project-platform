@@ -12,19 +12,12 @@ data:
 
     # Define paths for Vault-injected secret files
     KEYCLOAK_CONFIG_FILE="/vault/secrets/keycloak-config"
-    REDIS_PASSWORD_FILE="/vault/secrets/apricot-redis-password"
+    REDIS_PASSWORD_FILE="/vault/secrets/redis-password"
 
     # --- Pre-flight Checks ---
     # Ensure Python interpreter is available
     if ! command -v python3 &> /dev/null; then
         echo "ERROR: 'python3' command not found. Please ensure Python 3 is installed in your container image."
-        exit 1
-    fi
-
-    # Ensure Apricot's main script (run.py) is present
-    # (Assuming run.py is in the container's working directory or on PATH)
-    if ! test -f "run.py"; then
-        echo "ERROR: 'run.py' script not found in current directory. Ensure it's in the container's working directory."
         exit 1
     fi
 
@@ -122,4 +115,4 @@ data:
         echo "Redis password not available (file not found or empty)."
     fi
     # --- Start Apricot Proxy ---
-    bash /app/entrypoint.sh
+    sh /app/entrypoint.sh
