@@ -83,12 +83,12 @@ spec:
           # {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-          {{- if .Values.apricot.ldap.enableTls }}
           volumeMounts:
             - name: entrypoint-script-volume
               mountPath: /usr/local/bin/entrypoint.sh
               subPath: entrypoint.sh
               readOnly: true
+          {{- if .Values.apricot.ldap.enableTls }}
             - name: apricot-tls-cert
               mountPath: "/etc/apricot-tls"
               readOnly: true
