@@ -92,19 +92,20 @@ data:
     # --- Execute Embedded Python and Capture Output ---
     echo "Executing embedded Python script to extract secrets..."
 
-    # Pass file paths as environment variables to the Python script
+    # --- Set HOME and XDG_CONFIG_HOME for the application ---
+    export HOME="/tmp"
+    export XDG_CONFIG_HOME="${HOME}/.config"
+    echo "HOME set to: ${HOME}"
+    echo "XDG_CONFIG_HOME set to: ${XDG_CONFIG_HOME}"
+
+    # --- Pass file paths as environment variables to the Python script
     export KEYCLOAK_CONFIG_FILE
     export REDIS_PASSWORD_FILE
 
     VAR_ASSIGNMENTS=$(python3 -c "${read_secrets_py}")
 
     echo "--- Output captured from Python for eval ---"
-    echo "${VAR_ASSIGNMENTS}"
-    echo "------------------------------------------"
-
-    echo "--- Running eval command ---"
     eval "${VAR_ASSIGNMENTS}"
-    echo "--- Eval finished ---"
 
     # --- Export the variables so they are available to child processes ---
     echo "--- Exporting variables to environment ---"
