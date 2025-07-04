@@ -96,10 +96,23 @@ data:
     export KEYCLOAK_CONFIG_FILE
     export REDIS_PASSWORD_FILE
 
-    # Execute the Python script and capture its output (KEY=VALUE pairs).
-    # 'eval' then sets these variables in the current bash shell.
-    # This is safe because we fully control the Python script's output format.
-    eval "$(python3 -c "${read_secrets_py}")"
+    VAR_ASSIGNMENTS=$(python3 -c "${read_secrets_py}")
+
+    echo "--- Output captured from Python for eval ---"
+    echo "${VAR_ASSIGNMENTS}"
+    echo "------------------------------------------"
+
+    echo "--- Running eval command ---"
+    eval "${VAR_ASSIGNMENTS}"
+    echo "--- Eval finished ---"
+
+    # --- Export the variables so they are available to child processes ---
+    echo "--- Exporting variables to environment ---"
+
+    # Execute the Python script and capture its output
+    export CLIENT_ID
+    export CLIENT_SECRET
+    export REDIS_PASSWORD
 
     # Verify that essential variables were set by the Python script
     if [ -z "${CLIENT_ID:-}" ] || [ -z "${CLIENT_SECRET:-}" ]; then
@@ -108,7 +121,6 @@ data:
     fi
 
     echo "Keycloak CLIENT_ID extracted successfully."
-    # Note: CLIENT_SECRET and REDIS_PASSWORD are sensitive; avoid printing them to logs directly.
     if [ -n "${REDIS_PASSWORD:-}" ]; then
         echo "Redis password extracted successfully."
     else
