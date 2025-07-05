@@ -65,9 +65,20 @@ spec:
                 name: {{ include "common.names.fullname" . }}-cron-environment
           env:
             {{- include "openproject.env" . | nindent 12 }}
+            - name: TMPDIR
+              value: /tmp/app
+          command: ["sh", "-c"]
           args:
-            - bash
-            - /app/docker/prod/wait-for-db
+            - |
+              # Create a subdirectory that your non-root user will own
+              echo "Creating user-owned temporary directory /tmp/app..."
+              mkdir -p /tmp/app || { echo "Failed to create /tmp/app!"; exit 1; }
+              echo "Setting permissions on /tmp/app to 700..."
+              chmod 700 /tmp/app || { echo "Failed to set permissions on /tmp/app!"; exit 1; }
+              
+              # Now, run the original wait-for-db script
+              echo "Running original wait-for-db script..."
+              /app/docker/prod/wait-for-db
           resources:
             {{- toYaml .Values.appInit.resources | nindent 12 }}
           volumeMounts:
