@@ -97,6 +97,8 @@ spec:
             - /app/docker/prod/cron
           env:
             {{- include "openproject.env" . | nindent 12 }}
+            - name: TMPDIR
+              value: /tmp/app
           volumeMounts:
             {{- include "openproject.tmpVolumeMounts" . | indent 12 }}
             {{- if .Values.persistence.enabled }}
